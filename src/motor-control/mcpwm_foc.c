@@ -46,11 +46,6 @@ void mcpwm_foc_init()
     {
         Error_Handler();
     }
-    if (HAL_DMA_Init(&hdma_adc1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    __HAL_LINKDMA(&hadc1, DMA_Handle, hdma_adc1);
 
     /** Configure the ADC multi-mode */
     ADC_MultiModeTypeDef multimode = {0};
@@ -195,6 +190,8 @@ void mcpwm_foc_init()
     {
         Error_Handler();
     }
+    /* Disable Half transfer itr, need to investigate */
+    hdma_adc1.Instance->CR &= ~DMA_IT_HT;
 
     timer_reinit(15000);
 }
