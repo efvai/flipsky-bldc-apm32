@@ -6,7 +6,7 @@
             "includePath": [
                 "${workspaceFolder}/**"
             ],
-            "compilerPath": "D:\\Soft\\gnuarm\\bin\\arm-none-eabi-gcc.exe",
+            "compilerPath": "D:\\soft\\gnu-arm\\bin\\arm-none-eabi-gcc.exe",
             "cStandard": "gnu11",
             "cppStandard": "gnu++14",
             "intelliSenseMode": "gcc-arm",

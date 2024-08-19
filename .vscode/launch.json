@@ -23,7 +23,7 @@
                 "samplesPerSecond": 4
             },
             "svdFile": "D:/code/stm/flipsky-bldc-apm32/APM32F40x.svd",
-            "armToolchainPath": "D:/soft/gnuarm/bin/"
+            "armToolchainPath": "d:/soft/gnu-arm/bin/"
         }
     ]
 }

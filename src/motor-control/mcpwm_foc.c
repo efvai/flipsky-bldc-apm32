@@ -11,6 +11,12 @@ extern TIM_HandleTypeDef htim8;
 
 uint16_t ADC_value[12];
 
+/* Private */
+static void timer_reinit(int f_zv);
+static void stop_pwm_hw();
+static void start_pwm_hw();
+
+
 void mcpwm_foc_init()
 {
     __HAL_RCC_ADC1_CLK_ENABLE();
@@ -34,7 +40,7 @@ void mcpwm_foc_init()
     hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC2;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
     hadc1.Init.NbrOfConversion = 4;
-    hadc1.Init.DMAContinuousRequests = ENABLE; // true?
+    hadc1.Init.DMAContinuousRequests = ENABLE;
     hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 
     if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -312,6 +318,7 @@ static void timer_reinit(int f_zv)
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+    // enable n channels
 
     HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_2);
@@ -327,22 +334,49 @@ static void stop_pwm_hw()
 
     // Set Output Compare mode to Forced Inactive for Channel 1
     sConfigOC.OCMode = TIM_OCMODE_FORCED_INACTIVE;
+    sConfigOC.Pulse = TIM1->ARR / 2;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    sConfigOC.OCIdleState = TIM_OCIDLESTATE_SET;
+    sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;
     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1);
-    HAL_TIM_CCxChannelCmd(&htim1, TIM_CHANNEL_1, TIM_CCx_ENABLE);
-    HAL_TIM_CCxNChannelCmd(&htim1, TIM_CHANNEL_1, TIM_CCxN_DISABLE);
+    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCxN_DISABLE);
 
     // Set Output Compare mode to Forced Inactive for Channel 2
-    sConfigOC.OCMode = TIM_OCMODE_FORCED_INACTIVE;
     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2);
-    HAL_TIM_CCxChannelCmd(&htim1, TIM_CHANNEL_2, TIM_CCx_ENABLE);
-    HAL_TIM_CCxNChannelCmd(&htim1, TIM_CHANNEL_2, TIM_CCxN_DISABLE);
+    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCxN_DISABLE);
 
     // Set Output Compare mode to Forced Inactive for Channel 3
-    sConfigOC.OCMode = TIM_OCMODE_FORCED_INACTIVE;
     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3);
-    HAL_TIM_CCxChannelCmd(&htim1, TIM_CHANNEL_3, TIM_CCx_ENABLE);
-    HAL_TIM_CCxNChannelCmd(&htim1, TIM_CHANNEL_3, TIM_CCxN_DISABLE);
+    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCxN_DISABLE);
 
     // Generate COM event
     HAL_TIM_GenerateEvent(&htim1, TIM_EVENTSOURCE_COM);
+}
+
+static void start_pwm_hw() {
+    TIM_OC_InitTypeDef sConfigOC = {0};
+
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = TIM1->ARR / 2;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    sConfigOC.OCIdleState = TIM_OCIDLESTATE_SET;
+    sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;
+    HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1);
+    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCxN_ENABLE);
+
+    HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2);
+    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCxN_ENABLE);
+
+    HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3);
+    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCxN_ENABLE);
 }
