@@ -16,7 +16,6 @@ static void timer_reinit(int f_zv);
 static void stop_pwm_hw();
 static void start_pwm_hw();
 
-
 void mcpwm_foc_init()
 {
     __HAL_RCC_ADC1_CLK_ENABLE();
@@ -315,10 +314,12 @@ static void timer_reinit(int f_zv)
     }
 
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+    HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+    HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+    HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-    // enable n channels
 
     HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_2);
