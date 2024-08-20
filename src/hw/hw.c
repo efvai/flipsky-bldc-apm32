@@ -1,5 +1,4 @@
 #include "hw.h"
-#include "main.h"
 
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
@@ -11,7 +10,32 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim8;
 
 void hw_init_gpio(void) {
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
+  /* LEDs and GATE Pins init*/
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_10, GPIO_PIN_RESET);
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5 | GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /* DCCAL (DC Calibration) Pin init*/
+  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* DRV FAULT Pin init */
+  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /* Encoder pins init */
+  GPIO_InitStruct.Pin = GPIO_PIN_11;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
 
 /* Low level HAL stuff */
@@ -231,4 +255,17 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
     HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
   }
+}
+
+void TIM_CCxNChannelCmd(TIM_TypeDef *TIMx, uint32_t Channel, uint32_t ChannelNState)
+{
+  uint32_t tmp;
+
+  tmp = TIM_CCER_CC1NE << (Channel & 0xFU); /* 0xFU = 15 bits max shift */
+
+  /* Reset the CCxNE Bit */
+  TIMx->CCER &=  ~tmp;
+
+  /* Set or reset the CCxNE Bit */
+  TIMx->CCER |= (uint32_t)(ChannelNState << (Channel & 0xFU)); /* 0xFU = 15 bits max shift */
 }

@@ -44,6 +44,9 @@ set (PROJECT_SOURCES
 	${CMAKE_SOURCE_DIR}/src/system_stm32f4xx.c
 	${CMAKE_SOURCE_DIR}/src/stm32f4xx_it.c
 	${CMAKE_SOURCE_DIR}/src/stm32f4xx_hal_msp.c
+	${CMAKE_SOURCE_DIR}/src/motor-control/mcpwm_foc.c
+	${CMAKE_SOURCE_DIR}/src/hw/hw.c
+	
 
 	
 	)
@@ -54,6 +57,11 @@ set (STM32_SOURCES
 	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c
 	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
 	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
+	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c
+	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c
+	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c
+	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c
+	${STM32CUBEF4_PATH}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
 )
 
 set (PROJECT_INCLUDES
@@ -62,6 +70,8 @@ set (PROJECT_INCLUDES
 	${STM32CUBEF4_PATH}/Drivers/CMSIS/Include
 	${STM32CUBEF4_PATH}/Drivers/CMSIS/Device/ST/STM32F4xx/Include
 	${CMAKE_SOURCE_DIR}/src
+	${CMAKE_SOURCE_DIR}/src/hw
+	${CMAKE_SOURCE_DIR}/src/motor-control
 
     )
 

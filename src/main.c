@@ -1,4 +1,6 @@
 #include "main.h"
+#include "hw.h"
+#include "mcpwm_foc.h"
 
 void SystemClock_Config(void);
 
@@ -8,16 +10,9 @@ int main(void)
 
   SystemClock_Config();
   
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_4);
+  
+  hw_init_gpio();
+  mcpwm_foc_init();
 
 	while (1) {
     HAL_Delay(1000);

@@ -1,5 +1,9 @@
-#include "main.h"
+#include "mcpwm_foc.h"
 #include "hw.h"
+#include "utils_math.h"
+#include "foc_math.h"
+
+/* Extern Variables */
 
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
@@ -9,12 +13,41 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim8;
 
-uint16_t ADC_value[12];
+/* Global Variables*/
 
-/* Private */
+volatile uint16_t ADC_Value[HW_ADC_CHANNELS];
+
+typedef struct {
+	float input_voltage_filtered;
+
+    float motor_current_sum;
+    float input_current_sum;
+    float motor_current_iterations;
+    float input_current_iterations;
+    float motor_id_sum;
+	float motor_iq_sum;
+	float motor_id_iterations;
+	float motor_iq_iterations;
+	float motor_vd_sum;
+	float motor_vq_sum;
+	float motor_vd_iterations;
+	float motor_vq_iterations;
+    
+    uint32_t cycles_running;
+} motor_if_state_t;
+
+/* Private Variables */
+
+static volatile motor_if_state_t g_motor;
+static volatile motor_all_state_t g_motor_foc;
+
+/* Private Functions*/
+
 static void timer_reinit(int f_zv);
 static void stop_pwm_hw();
-static void start_pwm_hw();
+//static void start_pwm_hw();
+
+/* Function definitions */
 
 void mcpwm_foc_init()
 {
@@ -38,7 +71,7 @@ void mcpwm_foc_init()
     hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;
     hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC2;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = 4;
+    hadc1.Init.NbrOfConversion = HW_ADC_NBR_CONV;
     hadc1.Init.DMAContinuousRequests = ENABLE;
     hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 
@@ -95,7 +128,7 @@ void mcpwm_foc_init()
     hadc2.Init.ContinuousConvMode = DISABLE;
     hadc2.Init.DiscontinuousConvMode = DISABLE;
     hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc2.Init.NbrOfConversion = 4;
+    hadc2.Init.NbrOfConversion = HW_ADC_NBR_CONV;
     hadc2.Init.DMAContinuousRequests = DISABLE;
     hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
     if (HAL_ADC_Init(&hadc2) != HAL_OK)
@@ -140,7 +173,7 @@ void mcpwm_foc_init()
     hadc3.Init.ContinuousConvMode = DISABLE;
     hadc3.Init.DiscontinuousConvMode = DISABLE;
     hadc3.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc3.Init.NbrOfConversion = 4;
+    hadc3.Init.NbrOfConversion = HW_ADC_NBR_CONV;
     hadc3.Init.DMAContinuousRequests = DISABLE;
     hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
     if (HAL_ADC_Init(&hadc3) != HAL_OK)
@@ -186,14 +219,22 @@ void mcpwm_foc_init()
     {
         Error_Handler();
     }
-    if (HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)ADC_value, 12) != HAL_OK)
+    if (HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)ADC_Value, HW_ADC_CHANNELS) != HAL_OK)
     {
         Error_Handler();
     }
+
     /* Disable Half transfer itr, need to investigate */
     hdma_adc1.Instance->CR &= ~DMA_IT_HT;
-
+    /* Register DMA Callback */
+    //HAL_DMA_RegisterCallback(&hdma_adc1, HAL_DMA_XFER_CPLT_CB_ID, dma_callback);
+    
     timer_reinit(15000);
+
+    ENABLE_GATE();
+    DCCAL_OFF();
+    /* Wait for Input Voltage to settle */
+    
 }
 
 static void timer_reinit(int f_zv)
@@ -339,42 +380,88 @@ static void stop_pwm_hw()
     sConfigOC.OCIdleState = TIM_OCIDLESTATE_SET;
     sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;
     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1);
-    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCx_ENABLE);
-    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCxN_DISABLE);
+    TIM_CCxChannelCmd(htim1.Instance, TIM_CHANNEL_1, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(htim1.Instance, TIM_CHANNEL_1, TIM_CCxN_DISABLE);
 
     // Set Output Compare mode to Forced Inactive for Channel 2
     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2);
-    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCx_ENABLE);
-    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCxN_DISABLE);
+    TIM_CCxChannelCmd(htim1.Instance, TIM_CHANNEL_2, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(htim1.Instance, TIM_CHANNEL_2, TIM_CCxN_DISABLE);
 
     // Set Output Compare mode to Forced Inactive for Channel 3
     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3);
-    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCx_ENABLE);
-    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCxN_DISABLE);
+    TIM_CCxChannelCmd(htim1.Instance, TIM_CHANNEL_3, TIM_CCx_ENABLE);
+    TIM_CCxNChannelCmd(htim1.Instance, TIM_CHANNEL_3, TIM_CCxN_DISABLE);
 
     // Generate COM event
     HAL_TIM_GenerateEvent(&htim1, TIM_EVENTSOURCE_COM);
 }
 
-static void start_pwm_hw() {
-    TIM_OC_InitTypeDef sConfigOC = {0};
+// static void start_pwm_hw() {
+//     TIM_OC_InitTypeDef sConfigOC = {0};
 
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = TIM1->ARR / 2;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    sConfigOC.OCIdleState = TIM_OCIDLESTATE_SET;
-    sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;
-    HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1);
-    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCx_ENABLE);
-    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_1, TIM_CCxN_ENABLE);
+//     sConfigOC.OCMode = TIM_OCMODE_PWM1;
+//     sConfigOC.Pulse = TIM1->ARR / 2;
+//     sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+//     sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+//     sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+//     sConfigOC.OCIdleState = TIM_OCIDLESTATE_SET;
+//     sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;
+//     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1);
+//     TIM_CCxChannelCmd(htim1.Instance, TIM_CHANNEL_1, TIM_CCx_ENABLE);
+//     TIM_CCxNChannelCmd(htim1.Instance, TIM_CHANNEL_1, TIM_CCxN_ENABLE);
 
-    HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2);
-    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCx_ENABLE);
-    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_2, TIM_CCxN_ENABLE);
+//     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2);
+//     TIM_CCxChannelCmd(htim1.Instance, TIM_CHANNEL_2, TIM_CCx_ENABLE);
+//     TIM_CCxNChannelCmd(htim1.Instance, TIM_CHANNEL_2, TIM_CCxN_ENABLE);
 
-    HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3);
-    TIM_CCxChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCx_ENABLE);
-    TIM_CCxNChannelCmd(&htim1.Instance, TIM_CHANNEL_3, TIM_CCxN_ENABLE);
+//     HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3);
+//     TIM_CCxChannelCmd(htim1.Instance, TIM_CHANNEL_3, TIM_CCx_ENABLE);
+//     TIM_CCxNChannelCmd(htim1.Instance, TIM_CHANNEL_3, TIM_CCxN_ENABLE);
+// }
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+
+
+    /* interface timer isr */
+    const float input_voltage = GET_INPUT_VOLTAGE();
+	UTILS_LP_FAST(g_motor.input_voltage_filtered, input_voltage, 0.02);
+
+    /* TODO: Check voltage faults */
+
+    /* Get some values to prevent overwritting from rtos threads */
+    mc_state state = g_motor_foc.m_state;
+	float current = SIGN(g_motor_foc.m_motor_state.vq * 
+    g_motor_foc.m_motor_state.iq) * g_motor_foc.m_motor_state.i_abs;
+	float current_filtered = SIGN(g_motor_foc.m_motor_state.vq * 
+    g_motor_foc.m_motor_state.iq_filter) * g_motor_foc.m_motor_state.i_abs_filter;
+	float current_in_filtered = g_motor_foc.m_motor_state.i_bus;
+	float abs_current = g_motor_foc.m_motor_state.i_abs;
+	float abs_current_filtered = g_motor_foc.m_motor_state.i_abs_filter;
+
+    if (state == MC_STATE_RUNNING) {
+		g_motor.cycles_running++;
+	} else {
+		g_motor.cycles_running = 0;
+	}
+
+    // g_motor.motor_current_sum += current_filtered;
+	// g_motor.input_current_sum += current_in_filtered;
+	// g_motor.motor_current_iterations++;
+	// g_motor.input_current_iterations++;
+
+    // g_motor.motor_id_sum += g_motor_foc.m_motor_state.id;
+	// g_motor.motor_iq_sum += g_motor_foc.m_motor_state.iq;
+	// g_motor.motor_id_iterations++;
+	// g_motor.motor_iq_iterations++;
+
+	// g_motor.motor_vd_sum += g_motor_foc.m_motor_state.vd;
+	// g_motor.motor_vq_sum += g_motor_foc.m_motor_state.vq;
+	// g_motor.motor_vd_iterations++;
+	// g_motor.motor_vq_iterations++;
+
+    /* TODO: Check Current Fault (ABS) */
+    /* TODO: Check DRV Fault code */
+    /* TODO: Calculate power */
+    /* TODO: Sampling */
 }

@@ -1,5 +1,5 @@
-#include "main.h"
 #include "stm32f4xx_it.h"
+#include "main.h"
 
 extern DMA_HandleTypeDef hdma_adc1;
 extern ADC_HandleTypeDef hadc1;

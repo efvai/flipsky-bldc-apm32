@@ -3,6 +3,12 @@
         "stm32f4xx.h": "c",
         "stm32f4xx_hal.h": "c",
         "stm32f4xx_hal_conf.h": "c",
-        "stm32f4xx_hal_rcc.h": "c"
+        "stm32f4xx_hal_rcc.h": "c",
+        "main.h": "c",
+        "hw.h": "c",
+        "stm32f4xx_hal_tim.h": "c",
+        "stm32f4xx_hal_def.h": "c",
+        "stm32f4xx_it.h": "c",
+        "mcpwm_foc.h": "c"
     }
 }
