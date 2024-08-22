@@ -77,6 +77,44 @@
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
+// Current
+#define GET_CURRENT1()		((float)ADC_Value[ADC_IND_CURR1])
+#define GET_CURRENT2()		((float)ADC_Value[ADC_IND_CURR2])
+#define GET_CURRENT3()		0
+
+// Current ADC to amperes factor
+#define FAC_CURRENT			((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
+
+#define VOLTAGE_TO_ADC_FACTOR	( VIN_R2 / (VIN_R2 + VIN_R1) ) * ( 4096.0 / V_REG )
+
+// Voltage on phase input used for FOC 
+#ifndef ADC_V_L1_VOLTS
+#define ADC_V_L1_VOLTS				((float)ADC_V_L1 / 4096.0 * V_REG)
+#endif
+#ifndef ADC_V_L2_VOLTS
+#define ADC_V_L2_VOLTS				((float)ADC_V_L2 / 4096.0 * V_REG)
+#endif
+#ifndef ADC_V_L3_VOLTS
+#define ADC_V_L3_VOLTS				((float)ADC_V_L3 / 4096.0 * V_REG)
+#endif
+#ifndef ADC_V_L4_VOLTS
+#define ADC_V_L4_VOLTS				((float)ADC_V_L4 / 4096.0 * V_REG)
+#endif
+#ifndef ADC_V_L5_VOLTS
+#define ADC_V_L5_VOLTS				((float)ADC_V_L5 / 4096.0 * V_REG)
+#endif
+#ifndef ADC_V_L6_VOLTS
+#define ADC_V_L6_VOLTS				((float)ADC_V_L6 / 4096.0 * V_REG)
+#endif
+
+// Adc voltage scaling on phases and input
+#ifndef ADC_VOLTS_PH_FACTOR
+#define ADC_VOLTS_PH_FACTOR		1.0
+#endif
+#ifndef ADC_VOLTS_INPUT_FACTOR
+#define ADC_VOLTS_INPUT_FACTOR	1.0
+#endif
+
 // Hall/encoder pins
 #define HW_HALL_ENC_GPIO1		GPIOB
 #define HW_HALL_ENC_PIN1		6

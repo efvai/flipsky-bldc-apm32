@@ -1,6 +1,7 @@
 #include "main.h"
 #include "hw.h"
 #include "mcpwm_foc.h"
+#include "virtual_motor.h"
 
 void SystemClock_Config(void);
 
@@ -10,9 +11,28 @@ int main(void)
 
   SystemClock_Config();
   
+  mc_configuration conf;
+  conf.l_max_duty = 0.95;
+  conf.lo_current_max = 7;
+  conf.lo_current_min = -7;
+  conf.lo_in_current_max = 7;
+  conf.lo_in_current_max = 0;
+  conf.foc_current_kp = 0.01;
+  conf.foc_current_ki = 0.0001;
+  conf.foc_f_zv = 15000;
+  conf.foc_f_zv = 0.3;
+  conf.foc_motor_r = 0.5;
+  conf.foc_motor_l = 0.003;
+  conf.foc_motor_ld_lq_diff = 0;
+  conf.foc_motor_flux_linkage = 0.001;
+  conf.foc_sensor_mode = FOC_SENSOR_MODE_ENCODER;
+  conf.foc_encoder_ratio =  1;
+  conf.foc_current_filter_const = 0.01;
+  
   
   hw_init_gpio();
-  mcpwm_foc_init();
+  mcpwm_foc_init(&conf);
+  connect_virtual_motor(0, 1e-6, 24);
 
 	while (1) {
     HAL_Delay(1000);

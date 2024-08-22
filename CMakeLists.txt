@@ -45,7 +45,11 @@ set (PROJECT_SOURCES
 	${CMAKE_SOURCE_DIR}/src/stm32f4xx_it.c
 	${CMAKE_SOURCE_DIR}/src/stm32f4xx_hal_msp.c
 	${CMAKE_SOURCE_DIR}/src/motor-control/mcpwm_foc.c
+	${CMAKE_SOURCE_DIR}/src/motor-control/virtual_motor.c
+	${CMAKE_SOURCE_DIR}/src/motor-control/foc_math.c
+	${CMAKE_SOURCE_DIR}/src/utils_math.c
 	${CMAKE_SOURCE_DIR}/src/hw/hw.c
+	
 	
 
 	

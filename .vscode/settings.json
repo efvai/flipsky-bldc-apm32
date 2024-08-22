@@ -9,6 +9,8 @@
         "stm32f4xx_hal_tim.h": "c",
         "stm32f4xx_hal_def.h": "c",
         "stm32f4xx_it.h": "c",
-        "mcpwm_foc.h": "c"
+        "mcpwm_foc.h": "c",
+        "virtual_motor.h": "c",
+        "datatypes.h": "c"
     }
 }

@@ -240,13 +240,7 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* tim_pwmHandle)
   {
     /* TIM1 clock enable */
     __HAL_RCC_TIM1_CLK_ENABLE();
-  }
-}
-
-void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
-{
-
-  if(tim_baseHandle->Instance==TIM2)
+  } else if(tim_pwmHandle->Instance==TIM2)
   {
     /* TIM2 clock enable */
     __HAL_RCC_TIM2_CLK_ENABLE();

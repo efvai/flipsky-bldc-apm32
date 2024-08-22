@@ -88,7 +88,7 @@ typedef enum {
 } foc_pwm_mode;
 
 typedef struct {
-	//mc_configuration *m_conf;
+	mc_configuration *m_conf;
 	mc_state m_state;
 	mc_control_mode m_control_mode;
 	motor_state_t m_motor_state;
@@ -191,5 +191,8 @@ typedef struct {
 	float p_inv_ld_lq; // (1.0/lq - 1.0/ld)
 	float p_v2_v3_inv_avg_half; // (0.5/ld + 0.5/lq)
 } motor_all_state_t;
+
+void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
+		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
 
 #endif 
