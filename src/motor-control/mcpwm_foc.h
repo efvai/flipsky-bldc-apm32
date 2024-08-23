@@ -15,6 +15,7 @@ void mcpwm_foc_get_current_offsets(volatile float *curr0_offset,
 void mcpwm_foc_set_current_offsets(volatile float curr0_offset,
                                    volatile float curr1_offset,
                                    volatile float curr2_offset);
+void mcpwm_foc_set_current(float current);
 
 // External variables
 extern volatile uint16_t ADC_Value[];

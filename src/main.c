@@ -2,6 +2,7 @@
 #include "hw.h"
 #include "mcpwm_foc.h"
 #include "virtual_motor.h"
+#include "mcconf_default.h"
 
 void SystemClock_Config(void);
 
@@ -16,23 +17,41 @@ int main(void)
   conf.lo_current_max = 7;
   conf.lo_current_min = -7;
   conf.lo_in_current_max = 7;
-  conf.lo_in_current_max = 0;
+  conf.lo_in_current_min = -7;
   conf.foc_current_kp = 0.01;
   conf.foc_current_ki = 0.0001;
   conf.foc_f_zv = 15000;
-  conf.foc_f_zv = 0.3;
-  conf.foc_motor_r = 0.5;
-  conf.foc_motor_l = 0.003;
-  conf.foc_motor_ld_lq_diff = 0;
-  conf.foc_motor_flux_linkage = 0.001;
+  conf.foc_dt_us = MCCONF_FOC_DT_US;
+  conf.foc_current_kp = MCCONF_FOC_CURRENT_KP;
+  conf.foc_current_ki = MCCONF_FOC_CURRENT_KI;
+  conf.foc_motor_r = MCCONF_FOC_MOTOR_R;
+  conf.foc_motor_l = MCCONF_FOC_MOTOR_L;
+  conf.foc_motor_ld_lq_diff = MCCONF_FOC_MOTOR_LD_LQ_DIFF;
+  conf.foc_motor_flux_linkage = MCCONF_FOC_MOTOR_FLUX_LINKAGE;
   conf.foc_sensor_mode = FOC_SENSOR_MODE_ENCODER;
   conf.foc_encoder_ratio =  1;
-  conf.foc_current_filter_const = 0.01;
+  conf.foc_encoder_inverted = false;
+  conf.foc_encoder_offset = 0;
+  conf.foc_current_filter_const = MCCONF_FOC_CURRENT_FILTER_CONST;
+  conf.foc_temp_comp = false;
+	conf.foc_offsets_current[0] = MCCONF_FOC_OFFSETS_CURRENT_0;
+	conf.foc_offsets_current[1] = MCCONF_FOC_OFFSETS_CURRENT_1;
+	conf.foc_offsets_current[2] = MCCONF_FOC_OFFSETS_CURRENT_2;
+	conf.foc_offsets_voltage[0] = MCCONF_FOC_OFFSETS_VOLTAGE_0;
+	conf.foc_offsets_voltage[1] = MCCONF_FOC_OFFSETS_VOLTAGE_1;
+	conf.foc_offsets_voltage[2] = MCCONF_FOC_OFFSETS_VOLTAGE_2;
+	conf.foc_offsets_voltage_undriven[0] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_0;
+	conf.foc_offsets_voltage_undriven[1] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_1;
+	conf.foc_offsets_voltage_undriven[2] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_2;
+  conf.si_motor_poles = MCCONF_SI_MOTOR_POLES;
+
+  
   
   
   hw_init_gpio();
   mcpwm_foc_init(&conf);
   connect_virtual_motor(0, 1e-6, 24);
+  mcpwm_foc_set_current(0.5);
 
 	while (1) {
     HAL_Delay(1000);

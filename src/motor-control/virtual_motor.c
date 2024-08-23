@@ -262,7 +262,8 @@ static inline void run_virtual_motor_electrical(float v_alpha, float v_beta){
 								virtual_motor.lq * virtual_motor.iq -
 								m_conf->foc_motor_r * virtual_motor.id )
 								* virtual_motor.Ts ) / virtual_motor.ld;
-	virtual_motor.id = virtual_motor.id_int - m_conf->foc_motor_flux_linkage / virtual_motor.ld;
+    /* Why substracting flux linkage ? */
+	virtual_motor.id = virtual_motor.id_int;// - m_conf->foc_motor_flux_linkage / virtual_motor.ld;
 
 	// q axis current
 	virtual_motor.iq += (virtual_motor.vq -

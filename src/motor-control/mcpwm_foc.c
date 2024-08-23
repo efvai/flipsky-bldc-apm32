@@ -12,6 +12,14 @@
     TIM1->CCR3 = duty2;                           \
     TIM1->CR1 &= ~TIM_CR1_UDIS;
 
+#define TIMER_UPDATE_SAMP_TOP_M1(samp, top) \
+    TIM1->CR1 |= TIM_CR1_UDIS;              \
+    TIM2->CR1 |= TIM_CR1_UDIS;              \
+    TIM1->ARR = top;                        \
+    TIM2->CCR2 = samp / 2;                  \
+    TIM1->CR1 &= ~TIM_CR1_UDIS;             \
+    TIM2->CR1 &= ~TIM_CR1_UDIS;
+
 /* Extern Variables */
 
 extern ADC_HandleTypeDef hadc1;
@@ -265,10 +273,11 @@ void mcpwm_foc_init(mc_configuration *conf)
 
 /* Getters */
 
-float mcpwm_foc_get_phase(void) {
+float mcpwm_foc_get_phase(void)
+{
     float angle = RAD2DEG_f(g_motor_foc.m_motor_state.phase);
-	utils_norm_angle(&angle);
-	return angle;
+    utils_norm_angle(&angle);
+    return angle;
 }
 
 void mcpwm_foc_get_current_offsets(volatile float *curr0_offset,
@@ -289,6 +298,22 @@ void mcpwm_foc_set_current_offsets(volatile float curr0_offset,
     g_motor_foc.m_conf->foc_offsets_current[0] = curr0_offset;
     g_motor_foc.m_conf->foc_offsets_current[1] = curr1_offset;
     g_motor_foc.m_conf->foc_offsets_current[2] = curr2_offset;
+}
+
+void mcpwm_foc_set_current(float current) {
+    
+	g_motor_foc.m_control_mode = CONTROL_MODE_CURRENT;
+	g_motor_foc.m_iq_set = current;
+	g_motor_foc.m_id_set = 0;
+	
+	if (fabsf(current) < g_motor_foc.m_conf->cc_min_current) {
+		return;
+	}
+
+	if (g_motor_foc.m_state != MC_STATE_RUNNING) {
+		g_motor_foc.m_motor_released = false;
+		g_motor_foc.m_state = MC_STATE_RUNNING;
+	}
 }
 
 /* Handlers */
@@ -403,11 +428,11 @@ void mcpwm_foc_adc_interrupt_handler()
         g_motor_foc.m_motor_state.vd_int = g_motor_foc.m_motor_state.vd;
         g_motor_foc.m_motor_state.vq_int = g_motor_foc.m_motor_state.vq;
 
-        if (conf->foc_cc_decoupling == FOC_CC_DECOUPLING_BEMF ||
-            conf->foc_cc_decoupling == FOC_CC_DECOUPLING_CROSS_BEMF)
-        {
-            g_motor_foc.m_motor_state.vq_int -= g_motor_foc.m_pll_speed * conf->foc_motor_flux_linkage;
-        }
+        // if (conf->foc_cc_decoupling == FOC_CC_DECOUPLING_BEMF ||
+        //     conf->foc_cc_decoupling == FOC_CC_DECOUPLING_CROSS_BEMF)
+        // {
+        //     g_motor_foc.m_motor_state.vq_int -= g_motor_foc.m_pll_speed * conf->foc_motor_flux_linkage;
+        // }
 
         // Update corresponding modulation
         /* voltage_normalize = 1/(2/3*V_bus) */
@@ -448,8 +473,8 @@ void mcpwm_foc_adc_interrupt_handler()
 
         const float duty_now = g_motor_foc.m_motor_state.duty_now;
         const float duty_abs = fabsf(duty_now);
-        //const float vq_now = g_motor_foc.m_motor_state.vq;
-        //const float speed_fast_now = g_motor_foc.m_pll_speed;
+        // const float vq_now = g_motor_foc.m_motor_state.vq;
+        // const float speed_fast_now = g_motor_foc.m_pll_speed;
 
         float id_set_tmp = g_motor_foc.m_id_set;
         float iq_set_tmp = g_motor_foc.m_iq_set;
@@ -462,7 +487,7 @@ void mcpwm_foc_adc_interrupt_handler()
         UTILS_LP_FAST(g_motor_foc.m_duty_filtered, duty_now, 0.01);
         utils_truncate_number_abs((float *)&g_motor_foc.m_duty_filtered, 1.0);
 
-        //float duty_set = g_motor_foc.m_duty_cycle_set;
+        // float duty_set = g_motor_foc.m_duty_cycle_set;
 
         /* TODO: Something with braking and duty control mode */
 
@@ -565,19 +590,19 @@ void mcpwm_foc_adc_interrupt_handler()
     g_motor_foc.m_motor_state.duty_now = SIGN(g_motor_foc.m_motor_state.vq) *
                                          NORM2_f(g_motor_foc.m_motor_state.mod_d, g_motor_foc.m_motor_state.mod_q) * TWO_BY_SQRT3;
 
-    //float phase_for_speed_est = 0.0;
-    // switch (conf->foc_speed_soure)
-    // {
-    // case FOC_SPEED_SRC_CORRECTED:
-    //     phase_for_speed_est = g_motor_foc.m_motor_state.phase;
-    //     break;
-    // case FOC_SPEED_SRC_OBSERVER:
-    //     phase_for_speed_est = g_motor_foc.m_phase_now_observer;
-    //     break;
-    // };
+    // float phase_for_speed_est = 0.0;
+    //  switch (conf->foc_speed_soure)
+    //  {
+    //  case FOC_SPEED_SRC_CORRECTED:
+    //      phase_for_speed_est = g_motor_foc.m_motor_state.phase;
+    //      break;
+    //  case FOC_SPEED_SRC_OBSERVER:
+    //      phase_for_speed_est = g_motor_foc.m_phase_now_observer;
+    //      break;
+    //  };
 
     // Run PLL for speed estimation
-    //foc_pll_run(phase_for_speed_est, dt, &g_motor_foc.m_pll_phase, &g_motor_foc.m_pll_speed, conf);
+    // foc_pll_run(phase_for_speed_est, dt, &g_motor_foc.m_pll_phase, &g_motor_foc.m_pll_speed, conf);
 
     // Low latency speed estimation, for e.g. HFI and speed control.
     {
@@ -779,7 +804,6 @@ static void timer_reinit(int f_zv)
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
     HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_2);
-    
 
     stop_pwm_hw();
     // TIMER_UPDATE_SAMP??
@@ -815,7 +839,8 @@ static void stop_pwm_hw()
     HAL_TIM_GenerateEvent(&htim1, TIM_EVENTSOURCE_COM);
 }
 
-static void start_pwm_hw() {
+static void start_pwm_hw()
+{
     TIM_OC_InitTypeDef sConfigOC = {0};
 
     sConfigOC.OCMode = TIM_OCMODE_PWM1;
@@ -846,7 +871,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt)
     float s = state_m->phase_sin;
     float c = state_m->phase_cos;
 
-    //float abs_rpm = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
+    // float abs_rpm = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 
     // TODO: HFI
 
@@ -937,6 +962,10 @@ static void control_current(volatile motor_all_state_t *motor, float dt)
     state_m->i_abs = NORM2_f(state_m->id, state_m->iq);
     state_m->i_abs_filter = NORM2_f(state_m->id_filter, state_m->iq_filter);
 
+    // Inverse Park transform: transforms the (normalized) voltages from the rotor reference frame to the stator frame
+	state_m->mod_alpha_raw = c * state_m->mod_d - s * state_m->mod_q;
+	state_m->mod_beta_raw  = c * state_m->mod_q + s * state_m->mod_d;
+
     update_valpha_vbeta(motor, state_m->mod_alpha_raw, state_m->mod_beta_raw);
 
     // Dead time compensated values for vd and vq. Note that these are not used to control the switching times.
@@ -962,21 +991,26 @@ static void control_current(volatile motor_all_state_t *motor, float dt)
     foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, top, &duty1, &duty2, &duty3, (uint32_t *)&state_m->svm_sector);
     TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
 
-    if (virtual_motor_is_connected() == false) {
-		// If all duty cycles are equal the phases should be shorted. Instead of
-		// modulating the short we keep all low-side FETs on - that will draw less
-		// power and not suffer from dead-time distortion. It also gives more
-		// braking torque at low speed.
-		if (conf_now->foc_short_ls_on_zero_duty && !do_hfi && duty1 == duty2 && duty2 == duty3) {
-			// if (motor->m_pwm_mode != FOC_PWM_FULL_BRAKE) {
-			// 	full_brake_hw(motor);
-			// }
-		} else {
-			if (motor->m_pwm_mode != FOC_PWM_ENABLED) {
-				start_pwm_hw();
-			}
-		}
-	}
+    if (virtual_motor_is_connected() == false)
+    {
+        // If all duty cycles are equal the phases should be shorted. Instead of
+        // modulating the short we keep all low-side FETs on - that will draw less
+        // power and not suffer from dead-time distortion. It also gives more
+        // braking torque at low speed.
+        if (conf_now->foc_short_ls_on_zero_duty && !do_hfi && duty1 == duty2 && duty2 == duty3)
+        {
+            // if (motor->m_pwm_mode != FOC_PWM_FULL_BRAKE) {
+            // 	full_brake_hw(motor);
+            // }
+        }
+        else
+        {
+            if (motor->m_pwm_mode != FOC_PWM_ENABLED)
+            {
+                start_pwm_hw();
+            }
+        }
+    }
 }
 
 static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alpha, float mod_beta)
@@ -1064,9 +1098,11 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
         state_m->v_alpha = mod_alpha * (2.0 / 3.0) * state_m->v_bus;
         state_m->v_beta = mod_beta * (2.0 / 3.0) * state_m->v_bus;
         state_m->is_using_phase_filters = false;
-    } else {
+    }
+    else
+    {
         state_m->v_alpha = v_alpha;
-		state_m->v_beta = v_beta;
-		state_m->is_using_phase_filters = false;
+        state_m->v_beta = v_beta;
+        state_m->is_using_phase_filters = false;
     }
 }

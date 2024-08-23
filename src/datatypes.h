@@ -101,6 +101,12 @@ typedef struct {
 	FOC_SPEED_SRC foc_speed_soure;
 	bool foc_short_ls_on_zero_duty;
 
+	// Current controller
+	float cc_startup_boost_duty;
+	float cc_min_current;
+	float cc_gain;
+	float cc_ramp_step_max;
+
 	// Setup info
 	uint8_t si_motor_poles;
 } mc_configuration;
